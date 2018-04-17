@@ -2,6 +2,7 @@ pragma solidity ^0.4.9;
 
 import "./Receiver_Interface.sol";
 import "./ERC223_Interface.sol";
+import "zeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
  * ERC23 token by Dexaran
@@ -10,31 +11,8 @@ import "./ERC223_Interface.sol";
  */
 
 
-/* https://github.com/LykkeCity/EthereumApiDotNetCore/blob/master/src/ContractBuilder/contracts/token/SafeMath.sol */
-contract SafeMath {
-    uint256 constant public MAX_UINT256 =
-        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-
-    function safeAdd(uint256 x, uint256 y) pure internal returns (uint256 z) {
-        if (x > MAX_UINT256 - y) revert();
-        return x + y;
-    }
-
-    function safeSub(uint256 x, uint256 y) pure internal returns (uint256 z) {
-        if (x < y) revert();
-        return x - y;
-    }
-
-    function safeMul(uint256 x, uint256 y) pure internal returns (uint256 z) {
-        if (y == 0) return 0;
-        if (x > MAX_UINT256 / y) revert();
-        return x * y;
-    }
-}
-
-contract ERC223Token is ERC223, SafeMath {
-
-
+contract ERC223Token is ERC223 {
+  using SafeMath for uint256;
 
     mapping(address => uint) balances;
 
@@ -42,19 +20,6 @@ contract ERC223Token is ERC223, SafeMath {
     string public symbol;
     uint8 public decimals;
     uint256 public totalSupply;
-
-    function ERC223Token(
-        uint256 _initialAmount,
-        string _tokenName,
-        uint8 _decimalUnits,
-        string _tokenSymbol
-    ) {
-        balances[msg.sender] = _initialAmount;               // Give the creator all initial tokens
-        totalSupply = _initialAmount;                        // Update total supply
-        name = _tokenName;                                   // Set the name for display purposes
-        decimals = _decimalUnits;                            // Amount of decimals for display purposes
-        symbol = _tokenSymbol;                               // Set the symbol for display purposes
-    }
 
     // Function to access name of token .
     function name() public view returns (string _name) {
@@ -79,8 +44,8 @@ contract ERC223Token is ERC223, SafeMath {
 
         if(isContract(_to)) {
             if (balanceOf(msg.sender) < _value) revert();
-            balances[msg.sender] = safeSub(balanceOf(msg.sender), _value);
-            balances[_to] = safeAdd(balanceOf(_to), _value);
+            balances[msg.sender] = balanceOf(msg.sender).sub(_value);
+            balances[_to] = balanceOf(_to).add(_value);
             assert(_to.call.value(0)(bytes4(keccak256(_custom_fallback)), msg.sender, _value, _data));
             Transfer(msg.sender, _to, _value, _data);
             return true;
@@ -130,8 +95,8 @@ contract ERC223Token is ERC223, SafeMath {
     //function that is called when transaction target is an address
     function transferToAddress(address _to, uint _value, bytes _data) private returns (bool success) {
         if (balanceOf(msg.sender) < _value) revert();
-        balances[msg.sender] = safeSub(balanceOf(msg.sender), _value);
-        balances[_to] = safeAdd(balanceOf(_to), _value);
+        balances[msg.sender] = balanceOf(msg.sender).sub(_value);
+        balances[_to] = balanceOf(_to).add(_value);
         Transfer(msg.sender, _to, _value, _data);
         return true;
     }
@@ -139,8 +104,8 @@ contract ERC223Token is ERC223, SafeMath {
     //function that is called when transaction target is a contract
     function transferToContract(address _to, uint _value, bytes _data) private returns (bool success) {
         if (balanceOf(msg.sender) < _value) revert();
-        balances[msg.sender] = safeSub(balanceOf(msg.sender), _value);
-        balances[_to] = safeAdd(balanceOf(_to), _value);
+        balances[msg.sender] = balanceOf(msg.sender).sub(_value);
+        balances[_to] = balanceOf(_to).add(_value);
         ContractReceiver receiver = ContractReceiver(_to);
         receiver.tokenFallback(msg.sender, _value, _data);
         Transfer(msg.sender, _to, _value, _data);
