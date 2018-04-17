@@ -62,7 +62,7 @@ contract GluonToken is ERC223Token, BancorFormula, Ownable {
     }
 
     function tokenFallback(address _from, uint _value, bytes _data) public {
-        require(_from == address(reserveToken));
+        require(msg.sender == address(reserveToken));
         require(buy(_value));
     }
 
