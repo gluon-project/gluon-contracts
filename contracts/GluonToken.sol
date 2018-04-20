@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "zeppelin/contracts/ownership/Ownable.sol";
 import "./ERC223_Token.sol";
 import "./Receiver_Interface.sol";
 import "./BancorFormula.sol";
@@ -46,7 +46,6 @@ contract GluonToken is ERC223Token, BancorFormula, Ownable {
         string _tokenSymbol
     ) public {
         reserveRatio = _reserveRatio;
-        totalSupply = _totalSupply;
         gasPrice = _gasPrice;
 
         name = _tokenName;                                   // Set the name for display purposes
@@ -73,7 +72,7 @@ contract GluonToken is ERC223Token, BancorFormula, Ownable {
         totalSupply = totalSupply.add(tokensToMint);
         balances[msg.sender] = balances[msg.sender].add(tokensToMint);
         poolBalance = poolBalance.add(msg.value);
-        LogMint(tokensToMint, msg.value);
+        emit LogMint(tokensToMint, msg.value);
         return true;
     }
 
@@ -90,7 +89,7 @@ contract GluonToken is ERC223Token, BancorFormula, Ownable {
         poolBalance = poolBalance.sub(ethAmount);
         balances[msg.sender] = balances[msg.sender].sub(sellAmount);
         totalSupply = totalSupply.sub(sellAmount);
-        LogWithdraw(sellAmount, ethAmount);
+        emit LogWithdraw(sellAmount, ethAmount);
         return true;
     }
 

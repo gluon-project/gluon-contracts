@@ -1,8 +1,7 @@
 pragma solidity ^0.4.18;
 
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "zeppelin/contracts/ownership/Ownable.sol";
 import "./ERC223_Token.sol";
-import "./Receiver_Interface.sol";
 import "./BancorFormula.sol";
 
 
@@ -53,7 +52,6 @@ contract GluonToken is ERC223Token, BancorFormula, Ownable {
     ) public {
         reserveRatio = _reserveRatio;
         reserveToken = ERC223Token(_reserveToken);
-        totalSupply = _totalSupply;
         gasPrice = _gasPrice;
 
         name = _tokenName;                                   // Set the name for display purposes
@@ -63,7 +61,7 @@ contract GluonToken is ERC223Token, BancorFormula, Ownable {
 
     function tokenFallback(address _from, uint _value, bytes _data) public {
         require(msg.sender == address(reserveToken));
-        require(buy(_value));
+        require(buy(_from, _value));
     }
 
     /**
@@ -77,7 +75,7 @@ contract GluonToken is ERC223Token, BancorFormula, Ownable {
         totalSupply = totalSupply.add(tokensToMint);
         balances[_from] = balances[_from].add(tokensToMint);
         poolBalance = poolBalance.add(_value);
-        LogMint(tokensToMint, _value);
+        emit LogMint(tokensToMint, _value);
         return true;
     }
 
@@ -91,10 +89,10 @@ contract GluonToken is ERC223Token, BancorFormula, Ownable {
         require(sellAmount > 0 && balances[msg.sender] >= sellAmount);
         uint256 reserveTokenAmount = calculateSaleReturn(totalSupply, poolBalance, reserveRatio, sellAmount);
         reserveToken.transfer(msg.sender, reserveTokenAmount, _data);
-        poolBalance = poolBalance.sub(ethAmount);
+        poolBalance = poolBalance.sub(reserveTokenAmount);
         balances[msg.sender] = balances[msg.sender].sub(sellAmount);
         totalSupply = totalSupply.sub(sellAmount);
-        LogWithdraw(sellAmount, ethAmount);
+        emit LogWithdraw(sellAmount, reserveTokenAmount);
         return true;
     }
 

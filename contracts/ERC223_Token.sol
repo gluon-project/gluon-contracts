@@ -2,7 +2,7 @@ pragma solidity ^0.4.9;
 
 import "./Receiver_Interface.sol";
 import "./ERC223_Interface.sol";
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "zeppelin/contracts/math/SafeMath.sol";
 
 /**
  * ERC23 token by Dexaran
@@ -47,7 +47,7 @@ contract ERC223Token is ERC223 {
             balances[msg.sender] = balanceOf(msg.sender).sub(_value);
             balances[_to] = balanceOf(_to).add(_value);
             assert(_to.call.value(0)(bytes4(keccak256(_custom_fallback)), msg.sender, _value, _data));
-            Transfer(msg.sender, _to, _value, _data);
+            emit Transfer(msg.sender, _to, _value, _data);
             return true;
         }
         else {
@@ -97,7 +97,7 @@ contract ERC223Token is ERC223 {
         if (balanceOf(msg.sender) < _value) revert();
         balances[msg.sender] = balanceOf(msg.sender).sub(_value);
         balances[_to] = balanceOf(_to).add(_value);
-        Transfer(msg.sender, _to, _value, _data);
+        emit Transfer(msg.sender, _to, _value, _data);
         return true;
     }
 
@@ -108,7 +108,7 @@ contract ERC223Token is ERC223 {
         balances[_to] = balanceOf(_to).add(_value);
         ContractReceiver receiver = ContractReceiver(_to);
         receiver.tokenFallback(msg.sender, _value, _data);
-        Transfer(msg.sender, _to, _value, _data);
+        emit Transfer(msg.sender, _to, _value, _data);
         return true;
     }
 
