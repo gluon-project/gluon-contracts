@@ -13,103 +13,73 @@ import "./BancorFormula.sol";
  * https://github.com/bancorprotocol/contracts
  * https://github.com/ConsenSys/curationmarkets/blob/master/CurationMarkets.sol
  */
-contract GluonToken is ERC223Token, BancorFormula, Ownable {
+contract GluonToken is ERC223Token, Ownable {
     /**
      * @dev Available balance of reserve token in contract
      */
     uint256 public poolBalance = 0;
 
-    /*
-     * @dev reserve ratio, represented in ppm, 1-1000000
-     * 1/3 corresponds to y= multiple * x^2
-     * 1/2 corresponds to y= multiple * x
-     * 2/3 corresponds to y= multiple * x^1/2
-     * multiple will depends on contract initialization,
-     * specificallytotalAmount and poolBalance parameters
-     * we might want to add an 'initialize' function that will allow
-     * the owner to send ether to the contract and mint a given amount of tokens
-     */
-    uint32 public reserveRatio;
+    uint8 public exponent;
 
     /*
      * - Front-running attacks are currently mitigated by the following mechanisms:
      * TODO - minimum return argument for each conversion provides a way to define a minimum/maximum price for the transaction
      * - gas price limit prevents users from having control over the order of execution
      */
-    uint256 public gasPrice = 0 wei; // maximum gas price for bancor transactions
+    uint256 public gasPrice; // maximum gas price for bancor transactions
 
-    function BondingCurve(
-        uint32 _reserveRatio,
-        uint256 _gasPrice,
+    function GluonToken(
         string _tokenName,
         uint8 _decimalUnits,
-        string _tokenSymbol
-    ) public {
-        reserveRatio = _reserveRatio;
-        gasPrice = _gasPrice;
-
+        string _tokenSymbol,
+        uint8 _exponent
+    ) public payable {
         name = _tokenName;                                   // Set the name for display purposes
         decimals = _decimalUnits;                            // Amount of decimals for display purposes
         symbol = _tokenSymbol;                               // Set the symbol for display purposes
+
+        exponent = _exponent;
     }
 
-    /**
-     * @dev default function
-     * gas ~ 91645
-     */
-    function() public payable {
-        buy();
+    // TODO - this should be located in an external contract so the curve can be switched out
+    function curveIntegral(uint256 t) internal returns (uint256) {
+        uint256 one = 10000000000;
+        uint256 nexp = exponent + 1;
+        uint256 x = t ** nexp;
+        // TODO - check for overflow in power function
+        return one.div(nexp).mul(x).div(one);
     }
 
-    /**
-     * @dev Buy tokens
-     * gas ~ 77825
-     * TODO implement maxAmount that helps prevent miner front-running
-     */
-    function buy() validGasPrice public payable returns(bool) {
-        require(msg.value > 0);
-        uint256 tokensToMint = calculatePurchaseReturn(totalSupply, poolBalance, reserveRatio, msg.value);
-        totalSupply = totalSupply.add(tokensToMint);
-        balances[msg.sender] = balances[msg.sender].add(tokensToMint);
+    function mint(uint256 numTokens) public payable {
+        uint256 priceForTokens = priceToMint(numTokens);
+        require(msg.value >= priceForTokens);
+
+        totalSupply = totalSupply.add(numTokens);
+        balances[msg.sender] = balances[msg.sender].add(numTokens);
         poolBalance = poolBalance.add(msg.value);
-        emit LogMint(tokensToMint, msg.value);
-        return true;
+        // TODO - send back any additional ether
+        emit LogMint(numTokens, msg.value);
     }
 
-    /**
-     * @dev Sell tokens
-     * gas ~ 86936
-     * @param sellAmount Amount of tokens to withdraw
-     * TODO implement maxAmount that helps prevent miner front-running
-     */
-    function sell(uint256 sellAmount) validGasPrice public returns(bool) {
-        require(sellAmount > 0 && balances[msg.sender] >= sellAmount);
-        uint256 ethAmount = calculateSaleReturn(totalSupply, poolBalance, reserveRatio, sellAmount);
-        msg.sender.transfer(ethAmount);
-        poolBalance = poolBalance.sub(ethAmount);
-        balances[msg.sender] = balances[msg.sender].sub(sellAmount);
-        totalSupply = totalSupply.sub(sellAmount);
-        emit LogWithdraw(sellAmount, ethAmount);
-        return true;
+    function priceToMint(uint256 numTokens) public returns(uint256) {
+        return curveIntegral(totalSupply + numTokens) - poolBalance;
     }
 
-    // verifies that the gas price is lower than the universal limit
-    modifier validGasPrice() {
-        assert(tx.gasprice <= gasPrice);
-        _;
+    function rewardForBurn(uint256 numTokens) public returns(uint256) {
+        return poolBalance - curveIntegral(totalSupply - numTokens);
     }
 
-    /**
-     * @dev Allows the owner to update the gas price limit
-     * @param _gasPrice The new gas price limit
-     */
-    function setGasPrice(uint256 _gasPrice) onlyOwner public {
-        require(_gasPrice > 0);
-        gasPrice = _gasPrice;
+    function burn(uint256 numTokens) public returns(bool) {
+        require(balances[msg.sender] >= numTokens);
+        uint256 ethToReturn = rewardForBurn(numTokens);
+        totalSupply = totalSupply.sub(numTokens);
+        balances[msg.sender] = balances[msg.sender].sub(numTokens);
+        poolBalance = poolBalance.sub(ethToReturn);
+        msg.sender.transfer(ethToReturn);
+
+        emit LogBurn(numTokens, ethToReturn);
     }
 
     event LogMint(uint256 amountMinted, uint256 totalCost);
-    event LogWithdraw(uint256 amountWithdrawn, uint256 reward);
-    event LogBondingCurve(string logString, uint256 value);
+    event LogBurn(uint256 amountBurned, uint256 reward);
 }
-
