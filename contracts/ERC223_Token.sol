@@ -39,21 +39,21 @@ contract ERC223Token is ERC223 {
     }
 
 
-    // Function that is called when a user or another contract wants to transfer funds .
-    function transfer(address _to, uint _value, bytes _data, string _custom_fallback) public returns (bool success) {
+    /*// Function that is called when a user or another contract wants to transfer funds .*/
+    /*function transfer(address _to, uint _value, bytes _data, string _custom_fallback) public returns (bool success) {*/
 
-        if(isContract(_to)) {
-            if (balanceOf(msg.sender) < _value) revert();
-            balances[msg.sender] = balanceOf(msg.sender).sub(_value);
-            balances[_to] = balanceOf(_to).add(_value);
-            assert(_to.call.value(0)(bytes4(keccak256(_custom_fallback)), msg.sender, _value, _data));
-            emit Transfer(msg.sender, _to, _value, _data);
-            return true;
-        }
-        else {
-            return transferToAddress(_to, _value, _data);
-        }
-    }
+        /*if(isContract(_to)) {*/
+            /*if (balanceOf(msg.sender) < _value) revert();*/
+            /*balances[msg.sender] = balanceOf(msg.sender).sub(_value);*/
+            /*balances[_to] = balanceOf(_to).add(_value);*/
+            /*assert(_to.call.value(0)(bytes4(keccak256(_custom_fallback)), msg.sender, _value, _data));*/
+            /*emit Transfer(msg.sender, _to, _value, _data);*/
+            /*return true;*/
+        /*}*/
+        /*else {*/
+            /*return transferToAddress(_to, _value, _data);*/
+        /*}*/
+    /*}*/
 
 
     // Function that is called when a user or another contract wants to transfer funds .
@@ -69,18 +69,18 @@ contract ERC223Token is ERC223 {
 
     // Standard function transfer similar to ERC20 transfer with no _data .
     // Added due to backwards compatibility reasons .
-    function transfer(address _to, uint _value) public returns (bool success) {
+    /*function transfer(address _to, uint _value) public returns (bool success) {*/
 
-        //standard function transfer similar to ERC20 transfer with no _data
-        //added due to backwards compatibility reasons
-        bytes memory empty;
-        if(isContract(_to)) {
-            return transferToContract(_to, _value, empty);
-        }
-        else {
-            return transferToAddress(_to, _value, empty);
-        }
-    }
+        /*//standard function transfer similar to ERC20 transfer with no _data*/
+        /*//added due to backwards compatibility reasons*/
+        /*bytes memory empty;*/
+        /*if(isContract(_to)) {*/
+            /*return transferToContract(_to, _value, empty);*/
+        /*}*/
+        /*else {*/
+            /*return transferToAddress(_to, _value, empty);*/
+        /*}*/
+    /*}*/
 
     //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
     function isContract(address _addr) private view returns (bool is_contract) {

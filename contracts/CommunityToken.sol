@@ -1,8 +1,8 @@
 pragma solidity ^0.4.18;
 
 import "zeppelin/contracts/ownership/Ownable.sol";
+import "bytes/BytesLib.sol";
 import "./ERC223_Token.sol";
-import "./BancorFormula.sol";
 
 
 /**
@@ -12,107 +12,74 @@ import "./BancorFormula.sol";
  * https://github.com/bancorprotocol/contracts
  * https://github.com/ConsenSys/curationmarkets/blob/master/CurationMarkets.sol
  */
-contract GluonToken is ERC223Token, BancorFormula, Ownable {
-    /**
-     * @dev Available balance of reserve token in contract
-     */
-    uint256 public poolBalance = 0;
+contract CommunityToken is ERC223Token, Ownable {
 
-    /*
-     * @dev reserve ratio, represented in ppm, 1-1000000
-     * 1/3 corresponds to y= multiple * x^2
-     * 1/2 corresponds to y= multiple * x
-     * 2/3 corresponds to y= multiple * x^1/2
-     * multiple will depends on contract initialization,
-     * specificallytotalAmount and poolBalance parameters
-     * we might want to add an 'initialize' function that will allow
-     * the owner to send ether to the contract and mint a given amount of tokens
-     */
-    uint32 public reserveRatio;
+    using BytesLib for bytes;
 
-    /**
-     * @dev the token used for reserve
-     */
     ERC223Token public reserveToken;
+    uint256 public poolBalance;
+    uint8 public exponent;
 
-    /*
-     * - Front-running attacks are currently mitigated by the following mechanisms:
-     * TODO - minimum return argument for each conversion provides a way to define a minimum/maximum price for the transaction
-     * - gas price limit prevents users from having control over the order of execution
-     */
-    uint256 public gasPrice = 0 wei; // maximum gas price for bancor transactions
-
-    function BondingCurve(
-        uint32 _reserveRatio,
-        address _reserveToken,
-        uint256 _gasPrice,
+    function CommunityToken(
         string _tokenName,
         uint8 _decimalUnits,
-        string _tokenSymbol
+        string _tokenSymbol,
+        uint8 _exponent,
+        address _reserveToken
     ) public {
-        reserveRatio = _reserveRatio;
-        reserveToken = ERC223Token(_reserveToken);
-        gasPrice = _gasPrice;
-
         name = _tokenName;                                   // Set the name for display purposes
         decimals = _decimalUnits;                            // Amount of decimals for display purposes
         symbol = _tokenSymbol;                               // Set the symbol for display purposes
+        exponent = _exponent;
+        reserveToken = ERC223Token(_reserveToken);
     }
 
     function tokenFallback(address _from, uint _value, bytes _data) public {
         require(msg.sender == address(reserveToken));
-        require(buy(_from, _value));
+        uint256 numTokens = _data.toUint(0);
+        mint(_from, _value, numTokens);
     }
 
-    /**
-     * @dev Buy tokens
-     * gas ~ 77825
-     * TODO implement maxAmount that helps prevent miner front-running
-     */
-    function buy(address _from, uint256 _value) validGasPrice internal returns(bool) {
-        require(_value > 0);
-        uint256 tokensToMint = calculatePurchaseReturn(totalSupply, poolBalance, reserveRatio, _value);
-        totalSupply = totalSupply.add(tokensToMint);
-        balances[_from] = balances[_from].add(tokensToMint);
-        poolBalance = poolBalance.add(_value);
-        emit LogMint(tokensToMint, _value);
-        return true;
+    // TODO - this should be located in an external contract so the curve can be switched out
+    function curveIntegral(uint256 t) public returns (uint256) {
+        uint256 one = 10000000000;
+        uint256 nexp = exponent + 1;
+        uint256 x = t ** nexp;
+        // TODO - check for overflow in power function
+        return one.div(nexp).mul(x).div(one);
     }
 
-    /**
-     * @dev Sell tokens
-     * gas ~ 86936
-     * @param sellAmount Amount of tokens to withdraw
-     * TODO implement maxAmount that helps prevent miner front-running
-     */
-    function sell(uint256 sellAmount, bytes _data) validGasPrice public returns(bool) {
-        require(sellAmount > 0 && balances[msg.sender] >= sellAmount);
-        uint256 reserveTokenAmount = calculateSaleReturn(totalSupply, poolBalance, reserveRatio, sellAmount);
-        reserveToken.transfer(msg.sender, reserveTokenAmount, _data);
-        poolBalance = poolBalance.sub(reserveTokenAmount);
-        balances[msg.sender] = balances[msg.sender].sub(sellAmount);
-        totalSupply = totalSupply.sub(sellAmount);
-        emit LogWithdraw(sellAmount, reserveTokenAmount);
-        return true;
+    function priceToMint(uint256 numTokens) public returns(uint256) {
+        return curveIntegral(totalSupply + numTokens) - poolBalance;
     }
 
-    // verifies that the gas price is lower than the universal limit
-    modifier validGasPrice() {
-        assert(tx.gasprice <= gasPrice);
-        _;
+    function rewardForBurn(uint256 numTokens) public returns(uint256) {
+        return poolBalance - curveIntegral(totalSupply - numTokens);
     }
 
-    /**
-     * @dev Allows the owner to update the gas price limit
-     * @param _gasPrice The new gas price limit
-     */
-    function setGasPrice(uint256 _gasPrice) onlyOwner public {
-        require(_gasPrice > 0);
-        gasPrice = _gasPrice;
+    function mint(address sender, uint256 value, uint256 numTokens) internal {
+        uint256 priceForTokens = priceToMint(numTokens);
+        require(value >= priceForTokens);
+
+        totalSupply = totalSupply.add(numTokens);
+        balances[sender] = balances[sender].add(numTokens);
+        poolBalance = poolBalance.add(value);
+        // TODO - send back any additional tokens
+        emit Minted(numTokens, value);
     }
 
-    event LogMint(uint256 amountMinted, uint256 totalCost);
-    event LogWithdraw(uint256 amountWithdrawn, uint256 reward);
-    event LogBondingCurve(string logString, uint256 value);
+    function burn(uint256 numTokens, bytes _data) public {
+        require(balances[msg.sender] >= numTokens);
+        uint256 tokensToReturn = rewardForBurn(numTokens);
+        totalSupply = totalSupply.sub(numTokens);
+        balances[msg.sender] = balances[msg.sender].sub(numTokens);
+        poolBalance = poolBalance.sub(tokensToReturn);
+        reserveToken.transfer(msg.sender, numTokens, _data);
+
+        emit Burned(numTokens, tokensToReturn);
+    }
+
+    event Minted(uint256 amount, uint256 totalCost);
+    event Burned(uint256 amount, uint256 reward);
 }
 

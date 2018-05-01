@@ -1,7 +1,5 @@
 const GluonToken = artifacts.require('GluonToken')
-//const assertThrown = require('./utils/assertThrown')
 
-const GAS_PRICE = 1000000000
 
 contract('GluonToken', (accounts) => {
   let gluonToken
@@ -23,8 +21,6 @@ contract('GluonToken', (accounts) => {
     assert.equal(poolBalance, 0)
     const totalSupply = await gluonToken.totalSupply.call()
     assert.equal(totalSupply, 0)
-    const gasPrice = await gluonToken.gasPrice.call()
-    assert.equal(gasPrice.toNumber(), gasPrice, 'incorrect gasPrice')
   })
 
   it('Is initially owned by creator', async () => {
@@ -38,14 +34,14 @@ contract('GluonToken', (accounts) => {
 
     const priceToMint1 = await gluonToken.priceToMint.call(50)
     let tx = await gluonToken.mint(50, {value: priceToMint1, from: user1})
-    assert.equal(tx.logs[0].args.amountMinted.toNumber(), 50, 'amountMinted should be 50')
+    assert.equal(tx.logs[0].args.amount.toNumber(), 50, 'amount minted should be 50')
     balance = await gluonToken.balanceOf(user1)
     assert.equal(tx.logs[0].args.totalCost.toNumber(), priceToMint1)
 
     const priceToMint2 = await gluonToken.priceToMint.call(50)
     assert.isAbove(priceToMint2.toNumber(), priceToMint1)
     tx = await gluonToken.mint(50, {value: priceToMint2, from: user2})
-    assert.equal(tx.logs[0].args.amountMinted.toNumber(), 50, 'amountMinted should be 50')
+    assert.equal(tx.logs[0].args.amount.toNumber(), 50, 'amount minted should be 50')
     assert.equal(tx.logs[0].args.totalCost.toNumber(), priceToMint2)
 
     const totalSupply = await gluonToken.totalSupply.call()
@@ -77,7 +73,7 @@ contract('GluonToken', (accounts) => {
 
     let reward1 = await gluonToken.rewardForBurn.call(50)
     let tx = await gluonToken.burn(50, {from: user1})
-    assert.equal(tx.logs[0].args.amountBurned.toNumber(), 50, 'amountBurned should be 50')
+    assert.equal(tx.logs[0].args.amount.toNumber(), 50, 'amount burned should be 50')
     assert.equal(tx.logs[0].args.reward.toNumber(), reward1)
     let balance = await gluonToken.balanceOf(user1)
     assert.equal(balance.toNumber(), 0)
@@ -89,7 +85,7 @@ contract('GluonToken', (accounts) => {
 
     let reward2 = await gluonToken.rewardForBurn.call(50)
     tx = await gluonToken.burn(50, {from: user2})
-    assert.equal(tx.logs[0].args.amountBurned.toNumber(), 50, 'amountBurned should be 50')
+    assert.equal(tx.logs[0].args.amount.toNumber(), 50, 'amount burned should be 50')
     assert.equal(tx.logs[0].args.reward.toNumber(), reward2)
     balance = await gluonToken.balanceOf(user2)
     assert.equal(balance.toNumber(), 0)
