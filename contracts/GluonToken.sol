@@ -30,7 +30,7 @@ contract GluonToken is ERC223Token, Ownable {
     }
 
     // TODO - this should be located in an external contract so the curve can be switched out
-    function curveIntegral(uint256 t) public returns (uint256) {
+    function curveIntegral(uint256 t) internal returns (uint256) {
         uint256 one = 10000000000;
         uint256 nexp = exponent + 1;
         uint256 x = t ** nexp;

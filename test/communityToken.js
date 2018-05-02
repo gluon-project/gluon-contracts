@@ -1,11 +1,8 @@
 const GluonToken = artifacts.require('GluonToken')
 const CommunityToken = artifacts.require('CommunityToken')
 
+const glutils = require('../utils/glutils.js')
 
-const uintToBytes = uint => {
-  const hexInt = uint.toString(16)
-  return '0x' + '0'.repeat(64 - hexInt.length) + hexInt
-}
 
 contract('CommunityToken', (accounts) => {
   let gluonToken
@@ -56,7 +53,7 @@ contract('CommunityToken', (accounts) => {
     assert.equal(balance.toNumber(), 0)
 
     const priceToMint1 = await communityToken.priceToMint.call(50)
-    const numTokensBytes = uintToBytes(50)
+    const numTokensBytes = glutils.uintToBytes(50)
     let tx = await gluonToken.transfer(communityToken.address, priceToMint1, numTokensBytes, {from: user1})
     assert.equal(tx.logs[0].args.amount.toNumber(), 50, 'amount minted should be 50')
     assert.equal(tx.logs[0].args.totalCost.toNumber(), priceToMint1)
