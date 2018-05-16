@@ -6,10 +6,6 @@ import "./ERC223_Token.sol";
 
 /**
  * @title Gluon Token
- * @dev Bonding curve contract based on Bacor formula
- * inspired by bancor protocol and simondlr
- * https://github.com/bancorprotocol/contracts
- * https://github.com/ConsenSys/curationmarkets/blob/master/CurationMarkets.sol
  */
 contract GluonToken is ERC223Token, Ownable {
 
