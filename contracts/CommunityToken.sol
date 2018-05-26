@@ -73,7 +73,7 @@ contract CommunityToken is ERC223Token, Ownable {
         totalSupply = totalSupply.sub(numTokens);
         balances[msg.sender] = balances[msg.sender].sub(numTokens);
         poolBalance = poolBalance.sub(tokensToReturn);
-        reserveToken.transfer(msg.sender, numTokens, _data);
+        reserveToken.transfer(msg.sender, tokensToReturn, _data);
 
         emit Burned(numTokens, tokensToReturn);
     }
