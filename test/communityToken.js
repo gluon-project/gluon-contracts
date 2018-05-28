@@ -96,16 +96,19 @@ contract('CommunityToken', (accounts) => {
     assert.isTrue(didThrow)
   })
 
-  it('Can burn gluons and receive ether', async () => {
+  it('Can burn tokens and receive gluons', async () => {
     const poolBalance1 = await communityToken.poolBalance.call()
     const totalSupply1 = await communityToken.totalSupply.call()
 
+    let gbalance = (await gluonToken.balanceOf(user1)).toNumber()
     let reward1 = await communityToken.rewardForBurn.call(50)
     let tx = await communityToken.burn(50, '0x0', {from: user1})
     assert.equal(tx.logs[1].args.amount.toNumber(), 50, 'amount burned should be 50')
     assert.equal(tx.logs[1].args.reward.toNumber(), reward1)
     let balance = await communityToken.balanceOf(user1)
     assert.equal(balance.toNumber(), 0)
+    gbalance = (await gluonToken.balanceOf(user1)).toNumber() - gbalance
+    assert.equal(gbalance, reward1.toNumber())
 
     const poolBalance2 = await communityToken.poolBalance.call()
     assert.isBelow(poolBalance2.toNumber(), poolBalance1.toNumber())

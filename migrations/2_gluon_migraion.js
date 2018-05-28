@@ -1,7 +1,7 @@
 const GluonToken = artifacts.require("GluonToken");
 
 const NAME = 'Gluon'
-const DECIMALS = 18
+const DECIMALS = 0
 const SYMBOL = 'GLU'
 const EXPONENT = 2
 
