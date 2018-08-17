@@ -1,4 +1,4 @@
-const GluonToken = artifacts.require('GluonToken')
+const EthCommunityToken = artifacts.require('EthCommunityToken')
 const CommunityToken = artifacts.require('CommunityToken')
 const CommunityTokenFactory = artifacts.require('CommunityTokenFactory')
 
@@ -13,7 +13,7 @@ contract('CommunityToken', (accounts) => {
   const user2 = accounts[2]
 
   before(async () => {
-    gluonToken = await GluonToken.new(
+    gluonToken = await EthCommunityToken.new(
       'Gluon',
       18, // what is a reasonable # of decimals?
       'GLU',
@@ -32,7 +32,7 @@ contract('CommunityToken', (accounts) => {
     assert.equal(numCreatedTokens.toNumber(), 0, 'no tokens should be created yet')
   })
 
-  it('creates token', async () => {
+  it('creates gluonbacked community token', async () => {
     const numTokensToMint = 20
     const priceForTokens = glutils.priceToMintFirst(numTokensToMint, 2)
     const creationData = glutils.encodeFactoryData(numTokensToMint, 'myToken', 18, 'MTK', 2)
@@ -48,6 +48,22 @@ contract('CommunityToken', (accounts) => {
     assert.equal(u1GluBalance.toNumber(), 500000 - priceForTokens)
     const tokenGluBalance = await gluonToken.balanceOf(newTokenAddr)
     assert.equal(tokenGluBalance.toNumber(), priceForTokens)
+
+    const tokenName = await token.name.call()
+    assert.equal(tokenName, 'myToken')
+    const exponent = await token.exponent.call()
+    assert.equal(exponent.toNumber(), 2)
+  })
+
+  it('creates a eth backed community token', async () => {
+    const numTokensToMint = 20
+    const priceForTokens = glutils.priceToMintFirst(numTokensToMint, 2)
+
+    const tx = await communityTokenFactory.createEthCommunityTokenAndMint('myToken', 18, 'MTK', 2, numTokensToMint, {value: priceForTokens, from: user1})
+    const token = EthCommunityToken.at(tx.logs[0].args.addr)
+
+    const u1Balance = await token.balanceOf(user1)
+    assert.equal(u1Balance.toNumber(), 20)
 
     const tokenName = await token.name.call()
     assert.equal(tokenName, 'myToken')

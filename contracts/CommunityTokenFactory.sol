@@ -1,5 +1,5 @@
 import "bytes/BytesLib.sol";
-import "./GluonToken.sol";
+import "./EthCommunityToken.sol";
 import "./CommunityToken.sol";
 
 pragma solidity ^0.4.8;
@@ -9,12 +9,12 @@ contract CommunityTokenFactory {
 
     address[] public createdTokens;
     mapping(address => bool) public isCommunityToken;
-    GluonToken public gluon;
+    EthCommunityToken public gluon;
 
     event TokenCreated(string name, address addr);
 
     function CommunityTokenFactory(address gluonAddress) {
-        gluon = GluonToken(gluonAddress);
+        gluon = EthCommunityToken(gluonAddress);
     }
 
     function tokenFallback(address _from, uint _value, bytes _data) public {
@@ -38,6 +38,23 @@ contract CommunityTokenFactory {
         createdTokens.push(address(newToken));
         isCommunityToken[address(newToken)] = true;
         emit TokenCreated(_name, address(newToken));
+        return newToken;
+    }
+
+    function createEthCommunityToken(string _name, uint8 _decimals, string _symbol, uint8 exponent) public returns (EthCommunityToken) {
+        // TODO - find correct value for reserveRatio and gasPrice, set dynamically?
+        EthCommunityToken newToken = new EthCommunityToken(_name, _decimals, _symbol, exponent);
+        createdTokens.push(address(newToken));
+        isCommunityToken[address(newToken)] = true;
+        emit TokenCreated(_name, address(newToken));
+        return newToken;
+    }
+
+    function createEthCommunityTokenAndMint(string _name, uint8 _decimals, string _symbol, uint8 exponent, uint256 numTokens) public payable returns (EthCommunityToken) {
+        EthCommunityToken newToken = createEthCommunityToken(_name, _decimals, _symbol, exponent);
+        newToken.mint.value(msg.value)(numTokens);
+        bytes memory empty;
+        newToken.transfer(msg.sender, numTokens, empty);
         return newToken;
     }
 
