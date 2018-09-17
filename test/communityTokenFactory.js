@@ -5,7 +5,7 @@ const CommunityTokenFactory = artifacts.require('CommunityTokenFactory')
 const glutils = require('../utils/glutils.js')
 
 
-contract('CommunityToken', (accounts) => {
+contract('CommunityTokenFactory', (accounts) => {
   let gluonToken
   let communityTokenFactory
   const creator = accounts[0]
@@ -69,5 +69,20 @@ contract('CommunityToken', (accounts) => {
     assert.equal(tokenName, 'myToken')
     const exponent = await token.exponent.call()
     assert.equal(exponent.toNumber(), 2)
+  })
+
+  it('creates an erc20 token', async () => {
+    const totalSupply = 1000
+
+    const tx = await communityTokenFactory.createERC20Token('myToken', 18, 'MTK', totalSupply, {from: user1})
+    const token = EthCommunityToken.at(tx.logs[0].args.addr)
+
+    const u1Balance = await token.balanceOf(user1)
+    assert.equal(u1Balance.toNumber(), totalSupply)
+
+    const tokenName = await token.name.call()
+    assert.equal(tokenName, 'myToken')
+    const supply = await token.totalSupply.call()
+    assert.equal(supply.toNumber(), totalSupply)
   })
 })

@@ -16,5 +16,8 @@
     "truffle": "^4.1.6",
     "truffle-contract": "^3.0.5",
     "truffle-hdwallet-provider": "^0.0.3"
+  },
+  "dependencies": {
+    "openzeppelin-solidity": "^1.12.0"
   }
 }

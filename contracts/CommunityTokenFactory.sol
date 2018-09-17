@@ -1,6 +1,7 @@
 import "bytes/BytesLib.sol";
 import "./EthCommunityToken.sol";
 import "./CommunityToken.sol";
+import "./ERC20Token.sol";
 
 pragma solidity ^0.4.8;
 
@@ -55,6 +56,14 @@ contract CommunityTokenFactory {
         newToken.mint.value(msg.value)(numTokens);
         bytes memory empty;
         newToken.transfer(msg.sender, numTokens, empty);
+        return newToken;
+    }
+
+    function createERC20Token(string _name, uint8 _decimals, string _symbol, uint256 _totalSupply)  public returns (ERC20Token) {
+        ERC20Token newToken = new ERC20Token(_name, _decimals, _symbol, _totalSupply);
+        newToken.transfer(msg.sender, _totalSupply);
+        createdTokens.push(address(newToken));
+        emit TokenCreated(_name, address(newToken));
         return newToken;
     }
 
