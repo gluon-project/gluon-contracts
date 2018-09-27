@@ -1,19 +1,19 @@
 pragma solidity ^0.4.18;
 
-import "zeppelin/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./ERC223_Token.sol";
 
 
 /**
  * @title Gluon Token
  */
-contract GluonToken is ERC223Token, Ownable {
+contract EthCommunityToken is ERC223Token, Ownable {
 
     uint256 public poolBalance;
 
     uint8 public exponent;
 
-    function GluonToken(
+    function EthCommunityToken(
         string _tokenName,
         uint8 _decimalUnits,
         string _tokenSymbol,

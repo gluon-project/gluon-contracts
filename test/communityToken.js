@@ -63,7 +63,7 @@ contract('CommunityToken', (accounts) => {
     balance = await communityToken.balanceOf(user2)
     assert.equal(balance.toNumber(), 0)
     const priceToMint2 = await communityToken.priceToMint.call(50)
-    assert.isAbove(priceToMint2.toNumber(), priceToMint1)
+    assert.isAbove(priceToMint2.toNumber(), priceToMint1.toNumber())
     tx = await gluonToken.transfer(communityToken.address, priceToMint2, numTokensBytes, {from: user2})
     assert.equal(tx.logs[0].args.amount.toNumber(), 50, 'amount minted should be 50')
     assert.equal(tx.logs[0].args.totalCost.toNumber(), priceToMint2)
